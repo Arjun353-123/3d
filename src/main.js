@@ -22,7 +22,7 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setClearColor(COLORS.black, 1);
 
 const scene = new THREE.Scene();
-scene.fog = new THREE.FogExp2(COLORS.black, 0.035);
+scene.fog = new THREE.FogExp2(COLORS.black, 0.032);
 
 const camera = new THREE.PerspectiveCamera(
   50,
@@ -32,21 +32,25 @@ const camera = new THREE.PerspectiveCamera(
 );
 camera.position.set(0, 2, 12);
 
-// ─── Lighting (monochrome) ───────────────────────────────────────────────────
-const ambient = new THREE.AmbientLight(COLORS.white, 0.25);
+// ─── Lighting ─────────────────────────────────────────────────────────────────
+const ambient = new THREE.AmbientLight(COLORS.white, 0.22);
 scene.add(ambient);
 
-const keyLight = new THREE.DirectionalLight(COLORS.white, 1.2);
+const keyLight = new THREE.DirectionalLight(COLORS.white, 1.1);
 keyLight.position.set(5, 10, 8);
 scene.add(keyLight);
 
-const fillLight = new THREE.DirectionalLight(COLORS.gray, 0.4);
+const fillLight = new THREE.DirectionalLight(COLORS.gray, 0.45);
 fillLight.position.set(-6, 4, -4);
 scene.add(fillLight);
 
-const rimLight = new THREE.PointLight(COLORS.white, 0.6, 40);
+const rimLight = new THREE.PointLight(COLORS.white, 0.55, 50);
 rimLight.position.set(0, 8, -10);
 scene.add(rimLight);
+
+const cursorLight = new THREE.PointLight(COLORS.white, 0.9, 30);
+cursorLight.position.set(0, 2, 6);
+scene.add(cursorLight);
 
 // ─── Shared Materials ────────────────────────────────────────────────────────
 function createWireMaterial(opacity = 0.6) {
@@ -61,14 +65,14 @@ function createWireMaterial(opacity = 0.6) {
 function createSolidMaterial(color = COLORS.dark) {
   return new THREE.MeshStandardMaterial({
     color,
-    metalness: 0.3,
-    roughness: 0.7,
+    metalness: 0.35,
+    roughness: 0.65,
   });
 }
 
 function createEdgeLines(geometry, opacity = 0.35) {
   const edges = new THREE.EdgesGeometry(geometry);
-  const line = new THREE.LineSegments(
+  return new THREE.LineSegments(
     edges,
     new THREE.LineBasicMaterial({
       color: COLORS.white,
@@ -76,45 +80,194 @@ function createEdgeLines(geometry, opacity = 0.35) {
       opacity,
     })
   );
-  return line;
 }
 
-// ─── Infinite Grid Floor ───────────────────────────────────────────────────────
-function createGrid() {
-  const grid = new THREE.GridHelper(120, 60, 0x333333, 0x1a1a1a);
-  grid.position.y = -4;
-  grid.material.opacity = 0.4;
-  grid.material.transparent = true;
-  return grid;
+function createGlowRing(radius, opacity = 0.3) {
+  const ring = new THREE.Mesh(
+    new THREE.TorusGeometry(radius, 0.025, 6, 64),
+    createWireMaterial(opacity)
+  );
+  ring.rotation.x = Math.PI / 2;
+  return ring;
 }
 
-const grid = createGrid();
+// ─── Grid Floor ───────────────────────────────────────────────────────────────
+const grid = new THREE.GridHelper(140, 70, 0x333333, 0x141414);
+grid.position.y = -4;
+grid.material.opacity = 0.35;
+grid.material.transparent = true;
 scene.add(grid);
 
-// ─── Global Particle Field (coherent thread across sections) ───────────────────
-function createParticleField(count = 800) {
+// Secondary perspective grid (vertical wall)
+const wallGrid = new THREE.GridHelper(100, 40, 0x222222, 0x111111);
+wallGrid.position.set(0, -40, -18);
+wallGrid.rotation.x = Math.PI / 2;
+wallGrid.material.opacity = 0.15;
+wallGrid.material.transparent = true;
+scene.add(wallGrid);
+
+// ─── Global Particle Layers ───────────────────────────────────────────────────
+function createParticleField(count, spread, size, opacity) {
   const positions = new Float32Array(count * 3);
   for (let i = 0; i < count; i++) {
-    positions[i * 3] = (Math.random() - 0.5) * 60;
-    positions[i * 3 + 1] = (Math.random() - 0.5) * 120;
-    positions[i * 3 + 2] = (Math.random() - 0.5) * 40;
+    positions[i * 3] = (Math.random() - 0.5) * spread.x;
+    positions[i * 3 + 1] = (Math.random() - 0.5) * spread.y;
+    positions[i * 3 + 2] = (Math.random() - 0.5) * spread.z;
   }
   const geo = new THREE.BufferGeometry();
   geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-  const mat = new THREE.PointsMaterial({
-    color: COLORS.white,
-    size: 0.06,
-    transparent: true,
-    opacity: 0.5,
-    sizeAttenuation: true,
-  });
-  return new THREE.Points(geo, mat);
+  return new THREE.Points(
+    geo,
+    new THREE.PointsMaterial({
+      color: COLORS.white,
+      size,
+      transparent: true,
+      opacity,
+      sizeAttenuation: true,
+    })
+  );
 }
 
-const particles = createParticleField();
+const particles = createParticleField(1200, { x: 70, y: 130, z: 50 }, 0.05, 0.45);
 scene.add(particles);
 
-// ─── Section 0: Hero — Icosahedron + Orbital Ring ────────────────────────────
+const dustParticles = createParticleField(400, { x: 50, y: 100, z: 35 }, 0.12, 0.2);
+scene.add(dustParticles);
+
+// ─── Ambient Floating Shapes (replaces center spine) ─────────────────────────
+function createAmbientField() {
+  const group = new THREE.Group();
+  const shapes = [
+    () => new THREE.TetrahedronGeometry(0.3, 0),
+    () => new THREE.OctahedronGeometry(0.25, 0),
+    () => new THREE.BoxGeometry(0.25, 0.25, 0.25),
+    () => new THREE.IcosahedronGeometry(0.2, 0),
+    () => new THREE.TorusGeometry(0.2, 0.04, 6, 16),
+  ];
+
+  for (let i = 0; i < 60; i++) {
+    const geo = shapes[i % shapes.length]();
+    const isWire = i % 3 !== 0;
+    const mesh = new THREE.Mesh(
+      geo,
+      isWire ? createWireMaterial(0.15 + Math.random() * 0.25) : createSolidMaterial(0x111111)
+    );
+    mesh.position.set(
+      (Math.random() - 0.5) * 30,
+      -Math.random() * SECTION_SPACING * 7.5,
+      (Math.random() - 0.5) * 20 - 3
+    );
+    mesh.rotation.set(
+      Math.random() * Math.PI,
+      Math.random() * Math.PI,
+      Math.random() * Math.PI
+    );
+    mesh.userData = {
+      rotSpeed: new THREE.Vector3(
+        (Math.random() - 0.5) * 0.4,
+        (Math.random() - 0.5) * 0.4,
+        (Math.random() - 0.5) * 0.3
+      ),
+      floatSpeed: 0.3 + Math.random() * 0.7,
+      floatOffset: Math.random() * Math.PI * 2,
+      baseY: mesh.position.y,
+      driftX: (Math.random() - 0.5) * 0.02,
+    };
+    group.add(mesh);
+  }
+
+  group.userData.animate = (t) => {
+    group.children.forEach((mesh) => {
+      const d = mesh.userData;
+      mesh.rotation.x += d.rotSpeed.x * 0.016;
+      mesh.rotation.y += d.rotSpeed.y * 0.016;
+      mesh.rotation.z += d.rotSpeed.z * 0.016;
+      mesh.position.y = d.baseY + Math.sin(t * d.floatSpeed + d.floatOffset) * 0.6;
+      mesh.position.x += d.driftX;
+      if (Math.abs(mesh.position.x) > 18) d.driftX *= -1;
+    });
+  };
+
+  return group;
+}
+
+// ─── Section Accent Rings (scattered, not centered rod) ──────────────────────
+function createSectionRings() {
+  const group = new THREE.Group();
+  for (let i = 0; i < SECTION_COUNT; i++) {
+    const ringGroup = new THREE.Group();
+    ringGroup.position.set(
+      (i % 2 === 0 ? 1 : -1) * (6 + Math.random() * 2),
+      -i * SECTION_SPACING,
+      -4 - Math.random() * 3
+    );
+
+    const r1 = createGlowRing(1.5 + Math.random(), 0.2);
+    const r2 = createGlowRing(2.2 + Math.random() * 0.8, 0.12);
+    r2.rotation.x = Math.PI / 3;
+    r2.rotation.z = Math.PI / 5;
+    ringGroup.add(r1, r2);
+
+    const diamond = new THREE.Mesh(
+      new THREE.OctahedronGeometry(0.2, 0),
+      createWireMaterial(0.35)
+    );
+    ringGroup.add(diamond);
+
+    ringGroup.userData = { index: i, r1, r2, diamond };
+    group.add(ringGroup);
+  }
+
+  group.userData.animate = (t) => {
+    group.children.forEach((rg) => {
+      rg.userData.r1.rotation.z = t * 0.15 * (rg.userData.index % 2 === 0 ? 1 : -1);
+      rg.userData.r2.rotation.y = t * 0.1;
+      rg.userData.diamond.position.y = Math.sin(t + rg.userData.index) * 0.5;
+      rg.userData.diamond.rotation.set(t * 0.5, t * 0.3, 0);
+    });
+  };
+
+  return group;
+}
+
+// ─── Floating Arc Lines ───────────────────────────────────────────────────────
+function createArcLines() {
+  const group = new THREE.Group();
+  const arcs = [];
+
+  for (let i = 0; i < 12; i++) {
+    const curve = new THREE.QuadraticBezierCurve3(
+      new THREE.Vector3((Math.random() - 0.5) * 20, -Math.random() * 100, -5),
+      new THREE.Vector3((Math.random() - 0.5) * 15, -Math.random() * 100, -2),
+      new THREE.Vector3((Math.random() - 0.5) * 20, -Math.random() * 100, -6)
+    );
+    const points = curve.getPoints(30);
+    const geo = new THREE.BufferGeometry().setFromPoints(points);
+    const line = new THREE.Line(
+      geo,
+      new THREE.LineBasicMaterial({
+        color: COLORS.white,
+        transparent: true,
+        opacity: 0.08 + Math.random() * 0.1,
+      })
+    );
+    line.userData = { phase: Math.random() * Math.PI * 2, baseOpacity: line.material.opacity };
+    group.add(line);
+    arcs.push(line);
+  }
+
+  group.userData.arcs = arcs;
+  group.userData.animate = (t) => {
+    arcs.forEach((line) => {
+      line.material.opacity =
+        line.userData.baseOpacity + Math.sin(t * 0.8 + line.userData.phase) * 0.05;
+    });
+  };
+
+  return group;
+}
+
+// ─── Section 0: Hero ─────────────────────────────────────────────────────────
 function createHeroGroup() {
   const group = new THREE.Group();
   group.position.set(4, 0, -2);
@@ -125,41 +278,63 @@ function createHeroGroup() {
   icoWire.scale.setScalar(1.02);
   group.add(icoSolid, icoWire);
 
-  const ringGeo = new THREE.TorusGeometry(3.5, 0.03, 8, 80);
-  const ring = new THREE.Mesh(ringGeo, createWireMaterial(0.5));
-  ring.rotation.x = Math.PI / 2;
-  group.add(ring);
+  const outerShell = new THREE.Mesh(
+    new THREE.DodecahedronGeometry(3.2, 0),
+    createWireMaterial(0.15)
+  );
+  group.add(outerShell);
 
-  const ring2 = ring.clone();
-  ring2.scale.setScalar(0.7);
-  ring2.rotation.x = Math.PI / 3;
-  ring2.rotation.z = Math.PI / 4;
-  group.add(ring2);
+  for (let i = 0; i < 4; i++) {
+    const ring = createGlowRing(2.8 + i * 0.6, 0.25 - i * 0.04);
+    ring.rotation.x = Math.PI / 2 + i * 0.3;
+    ring.rotation.z = i * 0.5;
+    ring.userData.ringIndex = i;
+    group.add(ring);
+  }
 
-  // Orbiting small cubes
-  for (let i = 0; i < 6; i++) {
+  for (let i = 0; i < 8; i++) {
     const cube = new THREE.Mesh(
-      new THREE.BoxGeometry(0.15, 0.15, 0.15),
+      new THREE.BoxGeometry(0.12, 0.12, 0.12),
       createSolidMaterial(0x222222)
     );
-    const angle = (i / 6) * Math.PI * 2;
-    cube.userData.orbitAngle = angle;
-    cube.userData.orbitRadius = 3.5;
+    cube.userData.orbitAngle = (i / 8) * Math.PI * 2;
+    cube.userData.orbitRadius = 3.2 + (i % 2) * 0.8;
+    cube.userData.orbitSpeed = 0.4 + i * 0.05;
     group.add(cube);
+  }
+
+  for (let i = 0; i < 5; i++) {
+    const tetra = new THREE.Mesh(
+      new THREE.TetrahedronGeometry(0.2, 0),
+      createWireMaterial(0.4)
+    );
+    tetra.userData.tetraAngle = (i / 5) * Math.PI * 2;
+    tetra.userData.tetraR = 4.5;
+    group.add(tetra);
   }
 
   group.userData.animate = (t) => {
     icoSolid.rotation.y = t * 0.4;
     icoSolid.rotation.x = Math.sin(t * 0.3) * 0.2;
     icoWire.rotation.copy(icoSolid.rotation);
-    ring.rotation.z = t * 0.2;
-    ring2.rotation.z = -t * 0.15;
+    outerShell.rotation.y = -t * 0.15;
+    outerShell.rotation.x = t * 0.08;
+
     group.children.forEach((child) => {
       if (child.userData.orbitAngle !== undefined) {
-        const a = child.userData.orbitAngle + t * 0.5;
+        const a = child.userData.orbitAngle + t * child.userData.orbitSpeed;
         const r = child.userData.orbitRadius;
-        child.position.set(Math.cos(a) * r, Math.sin(a * 2) * 0.3, Math.sin(a) * r);
+        child.position.set(Math.cos(a) * r, Math.sin(a * 2) * 0.4, Math.sin(a) * r);
         child.rotation.set(t, t * 2, 0);
+      }
+      if (child.userData.tetraAngle !== undefined) {
+        const a = child.userData.tetraAngle + t * 0.2;
+        const r = child.userData.tetraR;
+        child.position.set(Math.cos(a) * r, Math.sin(t + child.userData.tetraAngle) * 0.8, Math.sin(a) * r);
+        child.rotation.set(t * 0.5, t, t * 0.3);
+      }
+      if (child.userData.ringIndex !== undefined) {
+        child.rotation.z += 0.003 * (child.userData.ringIndex % 2 === 0 ? 1 : -1);
       }
     });
   };
@@ -167,48 +342,73 @@ function createHeroGroup() {
   return group;
 }
 
-// ─── Section 1: About — Wireframe Portal Frame ───────────────────────────────
+// ─── Section 1: About ────────────────────────────────────────────────────────
 function createAboutGroup() {
   const group = new THREE.Group();
   group.position.set(-5, -SECTION_SPACING, 0);
 
   const frameGeo = new THREE.BoxGeometry(4, 5, 0.3);
-  const frame = new THREE.Mesh(frameGeo, createWireMaterial(0.4));
-  group.add(frame);
+  group.add(new THREE.Mesh(frameGeo, createWireMaterial(0.4)));
 
   const innerGeo = new THREE.BoxGeometry(3.2, 4.2, 0.5);
   const inner = new THREE.Mesh(innerGeo, createSolidMaterial(0x0d0d0d));
-  group.add(inner);
-
   const edges = createEdgeLines(innerGeo, 0.6);
-  group.add(edges);
+  group.add(inner, edges);
 
-  // Floating planes
-  for (let i = 0; i < 3; i++) {
+  const portalRing = new THREE.Mesh(
+    new THREE.TorusGeometry(3, 0.04, 8, 48),
+    createWireMaterial(0.35)
+  );
+  portalRing.rotation.y = Math.PI / 2;
+  group.add(portalRing);
+
+  const hexGeo = new THREE.CylinderGeometry(2, 2, 0.05, 6);
+  const hexGrid = new THREE.Mesh(hexGeo, createWireMaterial(0.2));
+  hexGrid.rotation.x = Math.PI / 2;
+  hexGrid.position.z = 1.5;
+  group.add(hexGrid);
+
+  for (let i = 0; i < 5; i++) {
     const plane = new THREE.Mesh(
-      new THREE.PlaneGeometry(1.5, 1),
+      new THREE.PlaneGeometry(1.2 + i * 0.2, 0.8),
       new THREE.MeshBasicMaterial({
         color: COLORS.white,
         transparent: true,
-        opacity: 0.08,
+        opacity: 0.06,
         side: THREE.DoubleSide,
       })
     );
-    plane.position.set(2.5, (i - 1) * 1.2, 1);
-    plane.userData.baseY = plane.position.y;
-    plane.userData.index = i;
+    plane.position.set(2.8, (i - 2) * 1, 1.2);
+    plane.userData = { baseY: plane.position.y, index: i };
     group.add(plane);
   }
 
+  for (let i = 0; i < 4; i++) {
+    const bracket = new THREE.Mesh(
+      new THREE.BoxGeometry(0.6, 0.6, 0.05),
+      createWireMaterial(0.5)
+    );
+    bracket.position.set(-2.5, (i - 1.5) * 1.5, 0.8);
+    bracket.userData = { index: i };
+    group.add(bracket);
+  }
+
+  group.userData = { inner, edges, portalRing, hexGrid };
   group.userData.animate = (t) => {
-    frame.rotation.y = Math.sin(t * 0.3) * 0.15;
-    inner.rotation.y = frame.rotation.y * 0.5;
-    edges.rotation.copy(inner.rotation);
+    const sway = Math.sin(t * 0.3) * 0.15;
+    group.userData.inner.rotation.y = sway * 0.5;
+    group.userData.edges.rotation.copy(group.userData.inner.rotation);
+    group.userData.portalRing.rotation.x = t * 0.2;
+    group.userData.hexGrid.rotation.z = t * 0.1;
+
     group.children.forEach((child) => {
       if (child.userData.baseY !== undefined) {
-        child.position.y =
-          child.userData.baseY + Math.sin(t * 0.8 + child.userData.index) * 0.3;
+        child.position.y = child.userData.baseY + Math.sin(t * 0.8 + child.userData.index) * 0.35;
         child.rotation.y = t * 0.2;
+      }
+      if (child.userData.index !== undefined && child.userData.baseY === undefined) {
+        child.rotation.z = Math.sin(t + child.userData.index) * 0.2;
+        child.scale.setScalar(1 + Math.sin(t * 2 + child.userData.index) * 0.05);
       }
     });
   };
@@ -216,15 +416,14 @@ function createAboutGroup() {
   return group;
 }
 
-// ─── Section 2: Experience — Twin Pillars + Bridge ───────────────────────────
+// ─── Section 2: Experience ───────────────────────────────────────────────────
 function createExperienceGroup() {
   const group = new THREE.Group();
   group.position.set(5, -SECTION_SPACING * 2, -1);
 
-  function createPillar(x, height, label) {
+  function createPillar(x, height) {
     const pillarGroup = new THREE.Group();
     pillarGroup.position.x = x;
-
     const geo = new THREE.CylinderGeometry(0.6, 0.8, height, 8);
     const solid = new THREE.Mesh(geo, createSolidMaterial(0x141414));
     const wire = new THREE.Mesh(geo, createWireMaterial(0.5));
@@ -240,37 +439,68 @@ function createExperienceGroup() {
     cap.position.y = height + 0.15;
     pillarGroup.add(cap);
 
-    pillarGroup.userData.label = label;
-    pillarGroup.userData.height = height;
+    for (let i = 0; i < 3; i++) {
+      const band = new THREE.Mesh(
+        new THREE.TorusGeometry(0.75, 0.03, 6, 20),
+        createWireMaterial(0.35)
+      );
+      band.rotation.x = Math.PI / 2;
+      band.position.y = height * (0.3 + i * 0.25);
+      pillarGroup.add(band);
+    }
     return pillarGroup;
   }
 
-  const pillarA = createPillar(-2, 5, "Amdocs");
-  const pillarB = createPillar(2, 4.2, "Journify");
+  const pillarA = createPillar(-2, 5);
+  const pillarB = createPillar(2, 4.2);
   group.add(pillarA, pillarB);
 
-  const bridgeGeo = new THREE.BoxGeometry(5, 0.15, 0.8);
-  const bridge = new THREE.Mesh(bridgeGeo, createWireMaterial(0.7));
+  const bridge = new THREE.Mesh(
+    new THREE.BoxGeometry(5, 0.15, 0.8),
+    createWireMaterial(0.7)
+  );
   bridge.position.y = 5.5;
   group.add(bridge);
 
-  const beamGeo = new THREE.CylinderGeometry(0.04, 0.04, 4.5, 6);
-  const beam = new THREE.Mesh(beamGeo, createWireMaterial(0.4));
-  beam.rotation.z = Math.PI / 2;
-  beam.position.y = 3;
-  group.add(beam);
+  for (let i = 0; i < 3; i++) {
+    const sphere = new THREE.Mesh(
+      new THREE.SphereGeometry(0.15, 8, 8),
+      createWireMaterial(0.5)
+    );
+    sphere.userData = { bridgeIndex: i };
+    group.add(sphere);
+  }
 
+  const gearA = new THREE.Mesh(
+    new THREE.TorusGeometry(0.5, 0.12, 6, 12),
+    createWireMaterial(0.4)
+  );
+  gearA.position.set(-3.5, 2, 1);
+  const gearB = gearA.clone();
+  gearB.position.set(3.5, 3, 1);
+  gearB.scale.setScalar(0.7);
+  group.add(gearA, gearB);
+
+  group.userData = { pillarA, pillarB, bridge, gearA, gearB };
   group.userData.animate = (t) => {
-    pillarA.rotation.y = Math.sin(t * 0.2) * 0.05;
-    pillarB.rotation.y = -Math.sin(t * 0.2) * 0.05;
-    bridge.position.y = 5.5 + Math.sin(t * 0.5) * 0.1;
-    beam.material.opacity = 0.3 + Math.sin(t) * 0.15;
+    group.userData.pillarA.rotation.y = Math.sin(t * 0.2) * 0.05;
+    group.userData.pillarB.rotation.y = -Math.sin(t * 0.2) * 0.05;
+    group.userData.bridge.position.y = 5.5 + Math.sin(t * 0.5) * 0.12;
+    group.userData.gearA.rotation.z = t * 0.5;
+    group.userData.gearB.rotation.z = -t * 0.7;
+
+    group.children.forEach((child) => {
+      if (child.userData.bridgeIndex !== undefined) {
+        const i = child.userData.bridgeIndex;
+        child.position.set((i - 1) * 2, 5.5 + Math.sin(t + i) * 0.2, 0.6);
+      }
+    });
   };
 
   return group;
 }
 
-// ─── Section 3: Projects — Three Floating Panels ─────────────────────────────
+// ─── Section 3: Projects ─────────────────────────────────────────────────────
 function createProjectsGroup() {
   const group = new THREE.Group();
   group.position.set(-4, -SECTION_SPACING * 3, 1);
@@ -284,26 +514,120 @@ function createProjectsGroup() {
   projects.forEach((p, i) => {
     const panelGroup = new THREE.Group();
     const geo = new THREE.BoxGeometry(p.w, p.h, 0.15);
-    const solid = new THREE.Mesh(geo, createSolidMaterial(p.color));
-    const wire = new THREE.Mesh(geo, createWireMaterial(0.55));
-    wire.scale.setScalar(1.02);
-    const edges = createEdgeLines(geo, 0.4);
-    panelGroup.add(solid, wire, edges);
+    panelGroup.add(
+      new THREE.Mesh(geo, createSolidMaterial(p.color)),
+      new THREE.Mesh(geo, createWireMaterial(0.55)),
+      createEdgeLines(geo, 0.4)
+    );
+    panelGroup.children[1].scale.setScalar(1.02);
+
+    const halo = new THREE.Mesh(
+      new THREE.SphereGeometry(1.2, 12, 12),
+      createWireMaterial(0.1)
+    );
+    halo.position.z = -0.5;
+    panelGroup.add(halo);
+
+    const diamond = new THREE.Mesh(
+      new THREE.OctahedronGeometry(0.2, 0),
+      createWireMaterial(0.6)
+    );
+    diamond.position.set(p.w / 2 + 0.3, p.h / 2, 0.3);
+    panelGroup.add(diamond);
 
     panelGroup.position.set((i - 1) * 2.2, (i - 1) * 0.5, p.z);
-    panelGroup.userData.index = i;
-    panelGroup.userData.basePos = panelGroup.position.clone();
+    panelGroup.userData = { index: i, basePos: panelGroup.position.clone(), halo, diamond };
     group.add(panelGroup);
   });
+
+  const connectorGeo = new THREE.BufferGeometry();
+  const connPoints = [
+    -2.2, 0, 0, 0, 0.5, -1.5,
+    0, 0.5, -1.5, 2.2, 1, 1.2,
+    -2.2, 0, 0, 2.2, 1, 1.2,
+  ];
+  connectorGeo.setAttribute("position", new THREE.Float32BufferAttribute(connPoints, 3));
+  const connectors = new THREE.LineSegments(
+    connectorGeo,
+    new THREE.LineBasicMaterial({ color: COLORS.white, transparent: true, opacity: 0.15 })
+  );
+  group.add(connectors);
 
   group.userData.animate = (t) => {
     group.children.forEach((child) => {
       if (child.userData.basePos) {
         const i = child.userData.index;
-        child.position.y =
-          child.userData.basePos.y + Math.sin(t * 0.6 + i * 1.2) * 0.4;
-        child.rotation.y = Math.sin(t * 0.3 + i) * 0.2;
-        child.rotation.x = Math.sin(t * 0.4 + i * 0.5) * 0.08;
+        child.position.y = child.userData.basePos.y + Math.sin(t * 0.6 + i * 1.2) * 0.45;
+        child.rotation.y = Math.sin(t * 0.3 + i) * 0.25;
+        child.rotation.x = Math.sin(t * 0.4 + i * 0.5) * 0.1;
+        child.userData.halo.scale.setScalar(1 + Math.sin(t + i) * 0.1);
+        child.userData.halo.rotation.y = t * 0.2;
+        child.userData.diamond.rotation.set(t, t * 1.5, 0);
+      }
+    });
+    connectors.material.opacity = 0.1 + Math.sin(t) * 0.06;
+  };
+
+  return group;
+}
+
+// ─── Section 4: Education ────────────────────────────────────────────────────
+function createEducationGroup() {
+  const group = new THREE.Group();
+  group.position.set(4.5, -SECTION_SPACING * 4, 0);
+
+  const stepCount = 5;
+  for (let i = 0; i < stepCount; i++) {
+    const stepGroup = new THREE.Group();
+    const w = 3 - i * 0.3;
+    const geo = new THREE.BoxGeometry(w, 0.5, 1.5);
+    stepGroup.add(
+      new THREE.Mesh(geo, createSolidMaterial(0x111111 + i * 0x030303)),
+      new THREE.Mesh(geo, createWireMaterial(0.35))
+    );
+    stepGroup.children[1].scale.setScalar(1.01);
+    stepGroup.position.set(0, i * 0.55, -i * 0.3);
+    stepGroup.userData.index = i;
+    group.add(stepGroup);
+  }
+
+  const cap = new THREE.Mesh(new THREE.ConeGeometry(0.8, 1.5, 4), createWireMaterial(0.6));
+  cap.position.set(0, stepCount * 0.55 + 0.8, -stepCount * 0.3);
+  cap.rotation.y = Math.PI / 4;
+  group.add(cap);
+
+  for (let i = 0; i < 3; i++) {
+    const orbitRing = createGlowRing(2 + i * 0.5, 0.15);
+    orbitRing.position.y = i * 1.5;
+    orbitRing.rotation.x = Math.PI / 4 + i * 0.3;
+    orbitRing.userData.orbitIdx = i;
+    group.add(orbitRing);
+  }
+
+  for (let i = 0; i < 6; i++) {
+    const page = new THREE.Mesh(
+      new THREE.BoxGeometry(0.6, 0.8, 0.02),
+      createWireMaterial(0.25)
+    );
+    page.position.set(2.5, i * 0.4, 0.5);
+    page.rotation.y = -0.3 + i * 0.1;
+    page.userData.pageIdx = i;
+    group.add(page);
+  }
+
+  group.userData.cap = cap;
+  group.userData.animate = (t) => {
+    group.rotation.y = Math.sin(t * 0.15) * 0.1;
+    cap.rotation.y = Math.PI / 4 + t * 0.3;
+    cap.position.y = stepCount * 0.55 + 0.8 + Math.sin(t * 0.5) * 0.15;
+
+    group.children.forEach((child) => {
+      if (child.userData.orbitIdx !== undefined) {
+        child.rotation.z = t * 0.15 * (child.userData.orbitIdx % 2 === 0 ? 1 : -1);
+      }
+      if (child.userData.pageIdx !== undefined) {
+        child.position.y = child.userData.pageIdx * 0.4 + Math.sin(t + child.userData.pageIdx) * 0.15;
+        child.rotation.z = Math.sin(t * 0.5 + child.userData.pageIdx) * 0.1;
       }
     });
   };
@@ -311,107 +635,101 @@ function createProjectsGroup() {
   return group;
 }
 
-// ─── Section 4: Education — Stacked Steps / Books ────────────────────────────
-function createEducationGroup() {
-  const group = new THREE.Group();
-  group.position.set(4.5, -SECTION_SPACING * 4, 0);
-
-  const stepCount = 5;
-  for (let i = 0; i < stepCount; i++) {
-    const w = 3 - i * 0.3;
-    const geo = new THREE.BoxGeometry(w, 0.5, 1.5);
-    const solid = new THREE.Mesh(geo, createSolidMaterial(0x111111 + i * 0x030303));
-    const wire = new THREE.Mesh(geo, createWireMaterial(0.35));
-    wire.scale.setScalar(1.01);
-    const stepGroup = new THREE.Group();
-    stepGroup.add(solid, wire);
-    stepGroup.position.set(0, i * 0.55, -i * 0.3);
-    stepGroup.userData.index = i;
-    group.add(stepGroup);
-  }
-
-  const capGeo = new THREE.ConeGeometry(0.8, 1.5, 4);
-  const cap = new THREE.Mesh(capGeo, createWireMaterial(0.6));
-  cap.position.set(0, stepCount * 0.55 + 0.8, -stepCount * 0.3);
-  cap.rotation.y = Math.PI / 4;
-  group.add(cap);
-
-  group.userData.cap = cap;
-  group.userData.animate = (t) => {
-    group.rotation.y = Math.sin(t * 0.15) * 0.1;
-    cap.rotation.y = Math.PI / 4 + t * 0.3;
-    cap.position.y = stepCount * 0.55 + 0.8 + Math.sin(t * 0.5) * 0.15;
-  };
-
-  return group;
-}
-
-// ─── Section 5: Certifications — Orbiting Badges ─────────────────────────────
+// ─── Section 5: Certifications ───────────────────────────────────────────────
 function createCertificationsGroup() {
   const group = new THREE.Group();
   group.position.set(-5, -SECTION_SPACING * 5, -1);
 
-  const certCount = 10;
   const orbitGroup = new THREE.Group();
-  group.add(orbitGroup);
+  const orbitGroup2 = new THREE.Group();
+  group.add(orbitGroup, orbitGroup2);
 
-  for (let i = 0; i < certCount; i++) {
-    const badge = new THREE.Mesh(
-      new THREE.OctahedronGeometry(0.35, 0),
-      createSolidMaterial(0x1a1a1a)
-    );
-    const wire = new THREE.Mesh(
-      new THREE.OctahedronGeometry(0.38, 0),
-      createWireMaterial(0.7)
-    );
+  for (let i = 0; i < 10; i++) {
     const badgeGroup = new THREE.Group();
-    badgeGroup.add(badge, wire);
-    badgeGroup.userData.angle = (i / certCount) * Math.PI * 2;
-    badgeGroup.userData.orbitR = 3 + (i % 3) * 0.5;
-    badgeGroup.userData.orbitY = (i % 4 - 1.5) * 0.6;
+    badgeGroup.add(
+      new THREE.Mesh(new THREE.OctahedronGeometry(0.35, 0), createSolidMaterial(0x1a1a1a)),
+      new THREE.Mesh(new THREE.OctahedronGeometry(0.38, 0), createWireMaterial(0.7))
+    );
+    badgeGroup.userData = {
+      angle: (i / 10) * Math.PI * 2,
+      orbitR: 3 + (i % 3) * 0.5,
+      orbitY: ((i % 4) - 1.5) * 0.6,
+    };
     orbitGroup.add(badgeGroup);
   }
 
-  const centerRing = new THREE.Mesh(
-    new THREE.TorusGeometry(1.2, 0.05, 8, 40),
-    createWireMaterial(0.5)
-  );
-  centerRing.rotation.x = Math.PI / 2;
-  group.add(centerRing);
+  for (let i = 0; i < 6; i++) {
+    const star = new THREE.Mesh(
+      new THREE.TetrahedronGeometry(0.2, 0),
+      createWireMaterial(0.45)
+    );
+    star.userData = { angle: (i / 6) * Math.PI * 2, orbitR: 1.8 };
+    orbitGroup2.add(star);
+  }
 
-  group.userData.orbitGroup = orbitGroup;
-  group.userData.centerRing = centerRing;
+  const centerRing = createGlowRing(1.2, 0.5);
+  const pulseRing = createGlowRing(2.5, 0.15);
+  pulseRing.rotation.x = Math.PI / 3;
+  group.add(centerRing, pulseRing);
+
+  for (let i = 0; i < 8; i++) {
+    const ray = new THREE.Mesh(
+      new THREE.BoxGeometry(0.02, 2.5, 0.02),
+      createWireMaterial(0.2)
+    );
+    ray.rotation.z = (i / 8) * Math.PI * 2;
+    ray.userData.rayIdx = i;
+    group.add(ray);
+  }
+
+  group.userData = { orbitGroup, orbitGroup2, centerRing, pulseRing };
   group.userData.animate = (t) => {
-    orbitGroup.rotation.y = t * 0.25;
-    centerRing.rotation.z = t * 0.4;
-    orbitGroup.children.forEach((badge) => {
-      const a = badge.userData.angle + t * 0.3;
-      const r = badge.userData.orbitR;
+    group.userData.orbitGroup.rotation.y = t * 0.25;
+    group.userData.orbitGroup2.rotation.y = -t * 0.4;
+    group.userData.centerRing.rotation.z = t * 0.4;
+    group.userData.pulseRing.rotation.y = t * 0.2;
+    group.userData.pulseRing.scale.setScalar(1 + Math.sin(t * 1.5) * 0.08);
+
+    group.userData.orbitGroup.children.forEach((badge) => {
+      const d = badge.userData;
+      const a = d.angle + t * 0.3;
       badge.position.set(
-        Math.cos(a) * r,
-        badge.userData.orbitY + Math.sin(t + badge.userData.angle) * 0.2,
-        Math.sin(a) * r
+        Math.cos(a) * d.orbitR,
+        d.orbitY + Math.sin(t + d.angle) * 0.25,
+        Math.sin(a) * d.orbitR
       );
       badge.rotation.set(t * 0.5, t, 0);
+    });
+
+    group.userData.orbitGroup2.children.forEach((star) => {
+      const a = star.userData.angle + t * 0.5;
+      star.position.set(Math.cos(a) * star.userData.orbitR, Math.sin(t * 2) * 0.3, Math.sin(a) * star.userData.orbitR);
+      star.rotation.set(t, t * 2, 0);
+    });
+
+    group.children.forEach((child) => {
+      if (child.userData.rayIdx !== undefined) {
+        child.material.opacity = 0.1 + Math.sin(t * 2 + child.userData.rayIdx) * 0.12;
+      }
     });
   };
 
   return group;
 }
 
-// ─── Section 6: Skills — Network Graph ───────────────────────────────────────
+// ─── Section 6: Skills ───────────────────────────────────────────────────────
 function createSkillsGroup() {
   const group = new THREE.Group();
   group.position.set(5, -SECTION_SPACING * 6, 0);
 
-  const nodeCount = 14;
+  const nodeCount = 18;
   const nodes = [];
   const nodePositions = [];
 
   for (let i = 0; i < nodeCount; i++) {
     const phi = Math.acos(2 * (i / nodeCount) - 1);
     const theta = Math.PI * (1 + Math.sqrt(5)) * i;
-    const r = 2.5;
+    const r = 2.8;
     const pos = new THREE.Vector3(
       r * Math.sin(phi) * Math.cos(theta),
       r * Math.sin(phi) * Math.sin(theta),
@@ -419,15 +737,9 @@ function createSkillsGroup() {
     );
     nodePositions.push(pos);
 
-    const node = new THREE.Mesh(
-      new THREE.SphereGeometry(0.12, 8, 8),
-      createSolidMaterial(0x222222)
-    );
+    const node = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), createSolidMaterial(0x222222));
+    const glow = new THREE.Mesh(new THREE.SphereGeometry(0.2, 8, 8), createWireMaterial(0.3));
     node.position.copy(pos);
-    const glow = new THREE.Mesh(
-      new THREE.SphereGeometry(0.18, 8, 8),
-      createWireMaterial(0.3)
-    );
     glow.position.copy(pos);
     group.add(node, glow);
     nodes.push({ node, glow, basePos: pos.clone() });
@@ -436,7 +748,7 @@ function createSkillsGroup() {
   const linePositions = [];
   for (let i = 0; i < nodeCount; i++) {
     for (let j = i + 1; j < nodeCount; j++) {
-      if (nodePositions[i].distanceTo(nodePositions[j]) < 3.2) {
+      if (nodePositions[i].distanceTo(nodePositions[j]) < 3.5) {
         linePositions.push(
           nodePositions[i].x, nodePositions[i].y, nodePositions[i].z,
           nodePositions[j].x, nodePositions[j].y, nodePositions[j].z
@@ -445,44 +757,48 @@ function createSkillsGroup() {
     }
   }
   const lineGeo = new THREE.BufferGeometry();
-  lineGeo.setAttribute(
-    "position",
-    new THREE.Float32BufferAttribute(linePositions, 3)
-  );
+  lineGeo.setAttribute("position", new THREE.Float32BufferAttribute(linePositions, 3));
   const lines = new THREE.LineSegments(
     lineGeo,
-    new THREE.LineBasicMaterial({
-      color: COLORS.white,
-      transparent: true,
-      opacity: 0.15,
-    })
+    new THREE.LineBasicMaterial({ color: COLORS.white, transparent: true, opacity: 0.18 })
   );
   group.add(lines);
 
-  const outerSphere = new THREE.Mesh(
-    new THREE.IcosahedronGeometry(3, 2),
-    createWireMaterial(0.12)
-  );
+  const outerSphere = new THREE.Mesh(new THREE.IcosahedronGeometry(3.2, 2), createWireMaterial(0.12));
   group.add(outerSphere);
 
-  group.userData.nodes = nodes;
-  group.userData.outerSphere = outerSphere;
+  for (let i = 0; i < 3; i++) {
+    const ring = createGlowRing(3.5 + i * 0.4, 0.1);
+    ring.rotation.x = Math.PI / 2 + i * 0.4;
+    ring.userData.skillRing = i;
+    group.add(ring);
+  }
+
+  group.userData = { nodes, outerSphere, lines };
   group.userData.animate = (t) => {
-    outerSphere.rotation.y = t * 0.1;
-    outerSphere.rotation.x = t * 0.05;
-    nodes.forEach((n, i) => {
-      const pulse = 1 + Math.sin(t * 2 + i * 0.5) * 0.15;
+    group.userData.outerSphere.rotation.y = t * 0.1;
+    group.userData.outerSphere.rotation.x = t * 0.05;
+    group.userData.lines.material.opacity = 0.12 + Math.sin(t * 1.2) * 0.08;
+
+    group.userData.nodes.forEach((n, i) => {
+      const pulse = 1 + Math.sin(t * 2 + i * 0.5) * 0.18;
       n.node.scale.setScalar(pulse);
-      n.glow.scale.setScalar(pulse * 1.3);
-      n.node.position.y = n.basePos.y + Math.sin(t + i) * 0.1;
+      n.glow.scale.setScalar(pulse * 1.4);
+      n.node.position.y = n.basePos.y + Math.sin(t + i) * 0.12;
       n.glow.position.copy(n.node.position);
+    });
+
+    group.children.forEach((child) => {
+      if (child.userData.skillRing !== undefined) {
+        child.rotation.z = t * 0.12 * (child.userData.skillRing % 2 === 0 ? 1 : -1);
+      }
     });
   };
 
   return group;
 }
 
-// ─── Section 7: Contact — Torus Knot Portal ──────────────────────────────────
+// ─── Section 7: Contact ──────────────────────────────────────────────────────
 function createContactGroup() {
   const group = new THREE.Group();
   group.position.set(0, -SECTION_SPACING * 7, 2);
@@ -493,56 +809,48 @@ function createContactGroup() {
   knotWire.scale.setScalar(1.01);
   group.add(knotSolid, knotWire);
 
-  const outerRing = new THREE.Mesh(
-    new THREE.TorusGeometry(3.2, 0.04, 8, 64),
-    createWireMaterial(0.35)
-  );
-  outerRing.rotation.x = Math.PI / 2;
-  group.add(outerRing);
-
-  const innerRing = outerRing.clone();
-  innerRing.scale.setScalar(0.65);
-  innerRing.rotation.x = Math.PI / 3;
-  group.add(innerRing);
-
-  group.userData.animate = (t) => {
-    knotSolid.rotation.x = t * 0.3;
-    knotSolid.rotation.y = t * 0.5;
-    knotWire.rotation.copy(knotSolid.rotation);
-    outerRing.rotation.z = t * 0.2;
-    innerRing.rotation.z = -t * 0.3;
-    innerRing.rotation.y = t * 0.15;
-  };
-
-  return group;
-}
-
-// ─── Connecting Spine (coherent vertical structure) ────────────────────────────
-function createSpine() {
-  const group = new THREE.Group();
-  const spineGeo = new THREE.CylinderGeometry(0.05, 0.05, SECTION_SPACING * 7.5, 8);
-  const spine = new THREE.Mesh(spineGeo, createWireMaterial(0.2));
-  spine.position.y = -SECTION_SPACING * 3.75;
-  group.add(spine);
-
-  for (let i = 0; i < SECTION_COUNT; i++) {
-    const ring = new THREE.Mesh(
-      new THREE.TorusGeometry(0.8, 0.02, 6, 32),
-      createWireMaterial(0.25)
-    );
-    ring.position.y = -i * SECTION_SPACING;
-    ring.rotation.x = Math.PI / 2;
-    ring.userData.index = i;
+  for (let i = 0; i < 5; i++) {
+    const ring = createGlowRing(2.8 + i * 0.5, 0.2 - i * 0.03);
+    ring.rotation.x = Math.PI / 2 + i * 0.25;
+    ring.rotation.y = i * 0.6;
+    ring.userData.contactRing = i;
     group.add(ring);
   }
 
-  group.position.x = 0;
-  group.position.z = -5;
+  for (let i = 0; i < 12; i++) {
+    const p = new THREE.Mesh(
+      new THREE.SphereGeometry(0.06, 6, 6),
+      createWireMaterial(0.5)
+    );
+    p.userData = { angle: (i / 12) * Math.PI * 2, radius: 4 };
+    group.add(p);
+  }
+
+  const frame = new THREE.Mesh(
+    new THREE.BoxGeometry(6, 6, 0.05),
+    createWireMaterial(0.15)
+  );
+  frame.position.z = -1;
+  group.add(frame);
+
+  group.userData = { knotSolid, knotWire, frame };
   group.userData.animate = (t) => {
+    group.userData.knotSolid.rotation.x = t * 0.3;
+    group.userData.knotSolid.rotation.y = t * 0.5;
+    group.userData.knotWire.rotation.copy(group.userData.knotSolid.rotation);
+    group.userData.frame.rotation.z = Math.sin(t * 0.2) * 0.05;
+
     group.children.forEach((child) => {
-      if (child.userData.index !== undefined) {
-        child.rotation.z = t * 0.1 * (child.userData.index % 2 === 0 ? 1 : -1);
-        child.material.opacity = 0.15 + Math.sin(t + child.userData.index) * 0.1;
+      if (child.userData.contactRing !== undefined) {
+        child.rotation.z += 0.004 * (child.userData.contactRing % 2 === 0 ? 1 : -1);
+      }
+      if (child.userData.angle !== undefined && child.userData.radius) {
+        const a = child.userData.angle + t * 0.35;
+        child.position.set(
+          Math.cos(a) * child.userData.radius,
+          Math.sin(a * 2) * 0.5,
+          Math.sin(a) * child.userData.radius * 0.5
+        );
       }
     });
   };
@@ -550,7 +858,7 @@ function createSpine() {
   return group;
 }
 
-// ─── Build Scene Groups ────────────────────────────────────────────────────────
+// ─── Build Scene ─────────────────────────────────────────────────────────────
 const sectionGroups = [
   createHeroGroup(),
   createAboutGroup(),
@@ -563,10 +871,13 @@ const sectionGroups = [
 ];
 
 sectionGroups.forEach((g) => scene.add(g));
-const spine = createSpine();
-scene.add(spine);
 
-const allAnimatedGroups = [...sectionGroups, spine, { userData: { animate: () => {} } }];
+const ambientField = createAmbientField();
+const sectionRings = createSectionRings();
+const arcLines = createArcLines();
+scene.add(ambientField, sectionRings, arcLines);
+
+const globalEffects = [ambientField, sectionRings, arcLines];
 
 // ─── Scroll & Camera ─────────────────────────────────────────────────────────
 let scrollProgress = 0;
@@ -578,9 +889,7 @@ function updateScrollProgress() {
   const scrollTop = window.scrollY;
   const docHeight = document.documentElement.scrollHeight - window.innerHeight;
   targetScrollProgress = docHeight > 0 ? scrollTop / docHeight : 0;
-  if (progressFill) {
-    progressFill.style.width = `${targetScrollProgress * 100}%`;
-  }
+  if (progressFill) progressFill.style.width = `${targetScrollProgress * 100}%`;
 
   sections.forEach((section) => {
     const rect = section.getBoundingClientRect();
@@ -611,33 +920,35 @@ function animate() {
   const activeSection = scrollProgress * (SECTION_COUNT - 1);
   const cameraY = 2 - activeSection * SECTION_SPACING * 0.85;
   const cameraZ = 12 - Math.sin(scrollProgress * Math.PI) * 3;
-  const cameraX = mouse.x * 1.5;
+  const cameraX = mouse.x * 1.8;
 
   camera.position.x += (cameraX - camera.position.x) * 0.05;
   camera.position.y += (cameraY - camera.position.y) * 0.06;
   camera.position.z += (cameraZ - camera.position.z) * 0.06;
   camera.lookAt(mouse.x * 0.5, cameraY - 2, -2);
 
-  particles.rotation.y = t * 0.02;
+  cursorLight.position.x += (mouse.x * 8 - cursorLight.position.x) * 0.08;
+  cursorLight.position.y += ((2 - mouse.y * 3) - cursorLight.position.y) * 0.08;
+
+  particles.rotation.y = t * 0.015;
+  particles.rotation.x = Math.sin(t * 0.1) * 0.02;
+  dustParticles.rotation.y = -t * 0.01;
+  dustParticles.position.y = Math.sin(t * 0.2) * 2;
+
   grid.position.y = cameraY - 6;
+  wallGrid.position.y = cameraY - 40;
 
   sectionGroups.forEach((group, i) => {
     const dist = Math.abs(activeSection - i);
-    const visibility = Math.max(0, 1 - dist * 0.6);
-    group.visible = visibility > 0.05;
-
-    if (group.userData.animate) {
-      group.userData.animate(t);
-    }
-
-    group.children.forEach((child) => {
-      if (child.material && child.material.opacity !== undefined && child !== group) {
-        // subtle fade based on active section
-      }
-    });
+    group.visible = dist < 1.8;
+    if (group.userData.animate) group.userData.animate(t, activeSection, i);
   });
 
-  if (spine.userData.animate) spine.userData.animate(t);
+  globalEffects.forEach((fx) => {
+    if (fx.userData.animate) fx.userData.animate(t);
+  });
+
+  rimLight.position.y = cameraY + 6;
 
   renderer.render(scene, camera);
 }
@@ -652,5 +963,4 @@ window.addEventListener("resize", () => {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 });
 
-// ─── Initial hero in-view ─────────────────────────────────────────────────────
 document.querySelector("#hero")?.classList.add("in-view");
