@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ARJUNBARATH B | Full Stack Developer</title>
+    <meta
+      name="description"
+      content="3D portfolio of ARJUNBARATH B — Full Stack Developer, CSE student at Karunya Institute of Technology and Sciences."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./src/styles.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.172.0/build/three.module.js"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <canvas id="webgl" aria-hidden="true"></canvas>
+
+    <div class="grain" aria-hidden="true"></div>
+
+    <nav class="nav" aria-label="Main navigation">
+      <a href="#hero" class="nav-logo">AB</a>
+      <ul class="nav-links">
+        <li><a href="#about">About</a></li>
+        <li><a href="#experience">Experience</a></li>
+        <li><a href="#projects">Projects</a></li>
+        <li><a href="#education">Education</a></li>
+        <li><a href="#certifications">Certs</a></li>
+        <li><a href="#skills">Skills</a></li>
+        <li><a href="#contact">Contact</a></li>
+      </ul>
+      <div class="nav-progress" aria-hidden="true">
+        <span class="nav-progress-fill"></span>
+      </div>
+    </nav>
+
+    <main>
+      <!-- HERO -->
+      <section id="hero" class="section" data-scene="0">
+        <div class="section-inner hero-inner">
+          <p class="eyebrow mono">Full Stack Developer</p>
+          <h1 class="hero-title">
+            <span class="line">ARJUN</span>
+            <span class="line outline">BARATH B</span>
+          </h1>
+          <p class="hero-sub">
+            Building real-world web applications with clean architecture,
+            scalable backends, and immersive frontends.
+          </p>
+          <div class="hero-cta">
+            <a href="#projects" class="btn btn-primary">View Projects</a>
+            <a href="#contact" class="btn btn-ghost">Get in Touch</a>
+          </div>
+          <div class="scroll-hint mono">
+            <span>Scroll to explore</span>
+            <span class="scroll-arrow">↓</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ABOUT -->
+      <section id="about" class="section" data-scene="1">
+        <div class="section-inner">
+          <header class="section-header">
+            <span class="section-num mono">01</span>
+            <h2>About Me</h2>
+          </header>
+          <div class="content-grid">
+            <p class="lead">
+              Computer Science &amp; Engineering student and IT professional with
+              a strong foundation in programming, data structures, and computer
+              fundamentals. Currently a <strong>2nd-year CSE student</strong> at
+              <strong>Karunya Institute of Technology and Sciences</strong>.
+            </p>
+            <p>
+              I work as a Project Intern building real-world web applications
+              and learning full-stack development. Skilled in
+              <strong>HTML, CSS, Java, Python</strong>, and passionate about
+              multi-threading, IoT protocols, and process optimization.
+            </p>
+            <div class="stat-row">
+              <div class="stat">
+                <span class="stat-value mono">2nd</span>
+                <span class="stat-label">Year CSE</span>
+              </div>
+              <div class="stat">
+                <span class="stat-value mono">2+</span>
+                <span class="stat-label">Internships</span>
+              </div>
+              <div class="stat">
+                <span class="stat-value mono">10+</span>
+                <span class="stat-label">Certifications</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- EXPERIENCE -->
+      <section id="experience" class="section" data-scene="2">
+        <div class="section-inner">
+          <header class="section-header">
+            <span class="section-num mono">02</span>
+            <h2>Experience</h2>
+          </header>
+          <div class="card-stack">
+            <article class="glass-card">
+              <div class="card-meta mono">
+                <span>Full Stack Developer Intern</span>
+                <span>2025 — Present</span>
+              </div>
+              <h3>Amdocs Technologies</h3>
+              <ul>
+                <li>
+                  Contributed to software engineering workflows using core
+                  programming and database paradigms.
+                </li>
+                <li>
+                  Collaborated on data pipeline processing and resolved
+                  technical overhead in corporate deployment environments.
+                </li>
+                <li>
+                  Optimized infrastructure components for scalable full-stack
+                  application delivery.
+                </li>
+              </ul>
+            </article>
+            <article class="glass-card">
+              <div class="card-meta mono">
+                <span>Full Stack Developer Intern</span>
+                <span>2025</span>
+              </div>
+              <h3>Journify Technology</h3>
+              <ul>
+                <li>
+                  Developed and maintained full-stack web application features
+                  across frontend and backend layers.
+                </li>
+                <li>
+                  Built responsive UI components and integrated RESTful APIs for
+                  production-ready deployments.
+                </li>
+                <li>
+                  Collaborated with cross-functional teams on agile development
+                  sprints and code reviews.
+                </li>
+              </ul>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- PROJECTS -->
+      <section id="projects" class="section" data-scene="3">
+        <div class="section-inner">
+          <header class="section-header">
+            <span class="section-num mono">03</span>
+            <h2>Projects</h2>
+          </header>
+          <div class="project-grid">
+            <article class="project-card">
+              <span class="project-index mono">01</span>
+              <h3>Online Food Ordering System</h3>
+              <p class="project-tag mono">Multi-threading Model</p>
+              <p>
+                Developed a multi-threaded ordering system with optimized
+                web-based application components for concurrent order processing
+                and real-time status updates.
+              </p>
+              <div class="tech-tags">
+                <span>Java</span><span>Multi-threading</span><span>Web</span>
+              </div>
+            </article>
+            <article class="project-card">
+              <span class="project-index mono">02</span>
+              <h3>Payload-Aware Protocol Overhead Reduction</h3>
+              <p class="project-tag mono">Wearable IoT</p>
+              <p>
+                Engineered protocol reduction features for wearable IoT devices
+                and collaborated on a smart network assistant application to
+                minimize transmission overhead.
+              </p>
+              <div class="tech-tags">
+                <span>IoT</span><span>Python</span><span>Protocols</span>
+              </div>
+            </article>
+            <article class="project-card">
+              <span class="project-index mono">03</span>
+              <h3>Medical Image Noise Removal</h3>
+              <p class="project-tag mono">Disease Pattern Analysis</p>
+              <p>
+                Developed analytic solutions for disease pattern detection and
+                noise removal in medical imaging segments with optimized
+                processing pipelines.
+              </p>
+              <div class="tech-tags">
+                <span>Python</span><span>MATLAB</span><span>ML</span>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- EDUCATION -->
+      <section id="education" class="section" data-scene="4">
+        <div class="section-inner">
+          <header class="section-header">
+            <span class="section-num mono">04</span>
+            <h2>Education</h2>
+          </header>
+          <article class="edu-card glass-card">
+            <div class="edu-badge mono">B.Tech</div>
+            <h3>Computer Science &amp; Engineering</h3>
+            <p class="edu-school">Karunya Institute of Technology and Sciences</p>
+            <p class="edu-years mono">2025 — 2029 · Currently 2nd Year</p>
+            <div class="coursework">
+              <h4>Core Coursework</h4>
+              <ul class="course-list">
+                <li>Data Structures &amp; Algorithms</li>
+                <li>Operating Systems &amp; Process Management</li>
+                <li>Computer Organization (CISC vs. RISC)</li>
+                <li>Internet of Things (IoT)</li>
+                <li>Embedded Systems Architecture</li>
+              </ul>
+            </div>
+            <p class="award mono">🏆 Karunya Institute Innovation Award</p>
+          </article>
+        </div>
+      </section>
+
+      <!-- CERTIFICATIONS -->
+      <section id="certifications" class="section" data-scene="5">
+        <div class="section-inner">
+          <header class="section-header">
+            <span class="section-num mono">05</span>
+            <h2>Certifications</h2>
+          </header>
+          <div class="cert-grid">
+            <div class="cert-item">
+              <span class="cert-issuer mono">DataCamp</span>
+              <span class="cert-name">DataCamp</span>
+              <span class="cert-date mono">Jan 2026</span>
+            </div>
+            <div class="cert-item">
+              <span class="cert-issuer mono">MATLAB@UCL</span>
+              <span class="cert-name">MATLAB</span>
+              <span class="cert-date mono">Dec 2025</span>
+            </div>
+            <div class="cert-item">
+              <span class="cert-issuer mono">Google Cloud</span>
+              <span class="cert-name">Professional Cloud Architect</span>
+              <span class="cert-date mono">Oct 2025</span>
+            </div>
+            <div class="cert-item">
+              <span class="cert-issuer mono">Microsoft</span>
+              <span class="cert-name">Certified Data Analyst</span>
+              <span class="cert-date mono">Jan 2025</span>
+            </div>
+            <div class="cert-item">
+              <span class="cert-issuer mono">Microsoft</span>
+              <span class="cert-name">Mathematics for Machine Learning</span>
+              <span class="cert-date mono">Jan 2025</span>
+            </div>
+            <div class="cert-item">
+              <span class="cert-issuer mono">Oracle</span>
+              <span class="cert-name">Certified Foundations Associate</span>
+              <span class="cert-date mono">Jan 2025</span>
+            </div>
+            <div class="cert-item">
+              <span class="cert-issuer mono">Cisco</span>
+              <span class="cert-name">CSS Essentials</span>
+              <span class="cert-date mono">Jan 2025</span>
+            </div>
+            <div class="cert-item">
+              <span class="cert-issuer mono">Cisco</span>
+              <span class="cert-name">HTML Essentials</span>
+              <span class="cert-date mono">Jan 2025</span>
+            </div>
+            <div class="cert-item">
+              <span class="cert-issuer mono">Intel</span>
+              <span class="cert-name">AI Aware</span>
+              <span class="cert-date mono">Jan 2025</span>
+            </div>
+            <div class="cert-item">
+              <span class="cert-issuer mono">UniAthena</span>
+              <span class="cert-name">Basics of Machine Learning</span>
+              <span class="cert-date mono">Jan 2025</span>
+            </div>
+          </div>
+          <a
+            href="https://www.linkedin.com/in/arjun-barath-a9511037a/details/certifications/"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="link-out mono"
+            >View all on LinkedIn →</a
+          >
+        </div>
+      </section>
+
+      <!-- SKILLS -->
+      <section id="skills" class="section" data-scene="6">
+        <div class="section-inner">
+          <header class="section-header">
+            <span class="section-num mono">06</span>
+            <h2>Skills</h2>
+          </header>
+          <div class="skills-layout">
+            <div class="skill-group">
+              <h3 class="mono">Languages</h3>
+              <div class="skill-pills">
+                <span>Python</span><span>Java</span><span>C</span
+                ><span>HTML</span><span>CSS</span><span>MATLAB</span>
+              </div>
+            </div>
+            <div class="skill-group">
+              <h3 class="mono">Technologies</h3>
+              <div class="skill-pills">
+                <span>Docker</span><span>HTML5</span><span>CSS3</span
+                ><span>REST APIs</span><span>Git</span>
+              </div>
+            </div>
+            <div class="skill-group">
+              <h3 class="mono">Specializations</h3>
+              <div class="skill-pills">
+                <span>Multi-threading</span><span>IoT Protocols</span
+                ><span>Process Optimization</span><span>OS Architecture</span
+                ><span>Embedded Systems</span>
+              </div>
+            </div>
+            <div class="skill-group">
+              <h3 class="mono">Academic Focus</h3>
+              <div class="skill-pills">
+                <span>Data Synchronization</span><span>Linear Algebra</span
+                ><span>Laplace Transforms</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- CONTACT -->
+      <section id="contact" class="section" data-scene="7">
+        <div class="section-inner contact-inner">
+          <header class="section-header">
+            <span class="section-num mono">07</span>
+            <h2>Contact</h2>
+          </header>
+          <p class="contact-lead">
+            Open to internships, collaborations, and full-stack development
+            opportunities.
+          </p>
+          <div class="contact-links">
+            <a href="mailto:arjunb17082007@gmail.com" class="contact-item">
+              <span class="mono">Email</span>
+              <span>arjunb17082007@gmail.com</span>
+            </a>
+            <a href="tel:+918883513997" class="contact-item">
+              <span class="mono">Phone</span>
+              <span>+91 8883513997</span>
+            </a>
+            <a
+              href="https://linkedin.com/in/arjun-barath-a9511037a"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="contact-item"
+            >
+              <span class="mono">LinkedIn</span>
+              <span>arjun-barath-a9511037a</span>
+            </a>
+            <a
+              href="https://github.com/Arjun353-123"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="contact-item"
+            >
+              <span class="mono">GitHub</span>
+              <span>Arjun353-123</span>
+            </a>
+          </div>
+          <footer class="site-footer mono">
+            <span>© 2026 ARJUNBARATH B</span>
+            <span>Built with Three.js</span>
+          </footer>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>
