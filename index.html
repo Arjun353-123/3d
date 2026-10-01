@@ -24,6 +24,42 @@
     </script>
   </head>
   <body>
+    <!-- Smooth Loader -->
+    <div class="loader-wrapper">
+      <div class="loader">
+        <div class="loader-ring"></div>
+        <div class="loader-ring"></div>
+        <div class="loader-ring"></div>
+      </div>
+      <div class="loader-text">Loading Experience</div>
+      <div class="loader-progress">
+        <div class="loader-progress-fill"></div>
+      </div>
+    </div>
+
+    <!-- Custom Cursor -->
+    <div class="custom-cursor"></div>
+    <div class="custom-cursor-follower"></div>
+
+    <!-- 3D Corner and Edge Decorations -->
+    <div class="corner-decorations">
+      <!-- Top Corners -->
+      <div class="corner corner-tl" data-corner="top-left"></div>
+      <div class="corner corner-tr" data-corner="top-right"></div>
+      <!-- Bottom Corners -->
+      <div class="corner corner-bl" data-corner="bottom-left"></div>
+      <div class="corner corner-br" data-corner="bottom-right"></div>
+      
+      <!-- Top Edge -->
+      <div class="edge edge-top"></div>
+      <!-- Right Edge -->
+      <div class="edge edge-right"></div>
+      <!-- Bottom Edge -->
+      <div class="edge edge-bottom"></div>
+      <!-- Left Edge -->
+      <div class="edge edge-left"></div>
+    </div>
+
     <canvas id="webgl" aria-hidden="true"></canvas>
 
     <div class="grain" aria-hidden="true"></div>
@@ -385,6 +421,15 @@
             >
               <span class="mono">GitHub</span>
               <span>Arjun353-123</span>
+            </a>
+            <a
+              href="https://leetcode.com/u/arjun_barath/"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="contact-item"
+            >
+              <span class="mono">LeetCode</span>
+              <span>arjun_barath</span>
             </a>
           </div>
           <footer class="site-footer mono">

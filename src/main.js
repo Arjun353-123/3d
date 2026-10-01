@@ -903,9 +903,89 @@ updateScrollProgress();
 
 // ─── Mouse Parallax ────────────────────────────────────────────────────────────
 const mouse = { x: 0, y: 0 };
+const cursorPos = { x: 0, y: 0 };
+const cursorFollowerPos = { x: 0, y: 0 };
+
 window.addEventListener("mousemove", (e) => {
   mouse.x = (e.clientX / window.innerWidth - 0.5) * 2;
   mouse.y = (e.clientY / window.innerHeight - 0.5) * 2;
+  
+  cursorPos.x = e.clientX;
+  cursorPos.y = e.clientY;
+});
+
+// ─── Custom Cursor Implementation ──────────────────────────────────────────────
+const cursor = document.querySelector('.custom-cursor');
+const cursorFollower = document.querySelector('.custom-cursor-follower');
+
+if (cursor && cursorFollower) {
+  // Activate cursor after a short delay
+  setTimeout(() => {
+    cursor.classList.add('active');
+    cursorFollower.classList.add('active');
+  }, 500);
+
+  // Smooth cursor follow
+  function updateCursor() {
+    cursorFollowerPos.x += (cursorPos.x - cursorFollowerPos.x) * 0.15;
+    cursorFollowerPos.y += (cursorPos.y - cursorFollowerPos.y) * 0.15;
+
+    cursor.style.left = cursorPos.x + 'px';
+    cursor.style.top = cursorPos.y + 'px';
+    cursor.style.transform = 'translate(-50%, -50%)';
+
+    cursorFollower.style.left = cursorFollowerPos.x + 'px';
+    cursorFollower.style.top = cursorFollowerPos.y + 'px';
+    cursorFollower.style.transform = 'translate(-50%, -50%)';
+
+    requestAnimationFrame(updateCursor);
+  }
+  updateCursor();
+
+  // Hover effects
+  const hoverElements = document.querySelectorAll('a, button, .btn, .nav-links a, .nav-logo, .glass-card, .project-card, .cert-item, .skill-pills span, .contact-item');
+  hoverElements.forEach(el => {
+    el.addEventListener('mouseenter', () => {
+      cursor.classList.add('hover');
+      cursorFollower.classList.add('hover');
+    });
+    el.addEventListener('mouseleave', () => {
+      cursor.classList.remove('hover');
+      cursorFollower.classList.remove('hover');
+    });
+  });
+}
+
+// ─── Smooth Page Loader ──────────────────────────────────────────────────────
+const loaderWrapper = document.querySelector('.loader-wrapper');
+
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    loaderWrapper.classList.add('loaded');
+  }, 1500); // Show loader for 1.5 seconds
+});
+
+// ─── Parallax Effect for Cards ────────────────────────────────────────────────
+const parallaxElements = document.querySelectorAll('.glass-card, .project-card, .contact-item');
+
+parallaxElements.forEach(el => {
+  el.addEventListener('mousemove', (e) => {
+    const rect = el.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    
+    const rotateX = (y - centerY) / 10;
+    const rotateY = (centerX - x) / 10;
+    
+    el.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-8px) scale(1.02)`;
+  });
+  
+  el.addEventListener('mouseleave', () => {
+    el.style.transform = '';
+  });
 });
 
 // ─── Animation Loop ────────────────────────────────────────────────────────────
@@ -918,29 +998,61 @@ function animate() {
   scrollProgress += (targetScrollProgress - scrollProgress) * 0.06;
 
   const activeSection = scrollProgress * (SECTION_COUNT - 1);
+  
+  // Enhanced 3D camera motion with parallax
   const cameraY = 2 - activeSection * SECTION_SPACING * 0.85;
   const cameraZ = 12 - Math.sin(scrollProgress * Math.PI) * 3;
   const cameraX = mouse.x * 1.8;
+  
+  // Add subtle rotation based on mouse position
+  const targetRotationY = mouse.x * 0.1;
+  const targetRotationX = -mouse.y * 0.05;
 
   camera.position.x += (cameraX - camera.position.x) * 0.05;
   camera.position.y += (cameraY - camera.position.y) * 0.06;
   camera.position.z += (cameraZ - camera.position.z) * 0.06;
-  camera.lookAt(mouse.x * 0.5, cameraY - 2, -2);
+  
+  // Enhanced camera look-at with mouse parallax
+  const lookAtX = mouse.x * 0.5 + Math.sin(t * 0.2) * 0.3;
+  const lookAtY = cameraY - 2 + Math.cos(t * 0.3) * 0.2;
+  const lookAtZ = -2 + mouse.y * 0.3;
+  camera.lookAt(lookAtX, lookAtY, lookAtZ);
 
+  // Enhanced cursor light with pulsing effect
+  const lightPulse = 1 + Math.sin(t * 2) * 0.1;
+  cursorLight.intensity = 0.9 * lightPulse;
   cursorLight.position.x += (mouse.x * 8 - cursorLight.position.x) * 0.08;
   cursorLight.position.y += ((2 - mouse.y * 3) - cursorLight.position.y) * 0.08;
 
+  // Enhanced particle motion with wave effects
   particles.rotation.y = t * 0.015;
   particles.rotation.x = Math.sin(t * 0.1) * 0.02;
+  particles.position.y = Math.sin(t * 0.15) * 0.5;
+  
   dustParticles.rotation.y = -t * 0.01;
+  dustParticles.rotation.z = Math.cos(t * 0.08) * 0.01;
   dustParticles.position.y = Math.sin(t * 0.2) * 2;
+  dustParticles.position.x = Math.cos(t * 0.1) * 0.5;
 
+  // Animate grid with depth effect
   grid.position.y = cameraY - 6;
+  grid.material.opacity = 0.35 + Math.sin(t * 0.5) * 0.05;
+  
   wallGrid.position.y = cameraY - 40;
+  wallGrid.material.opacity = 0.15 + Math.sin(t * 0.3) * 0.03;
 
+  // Enhanced section animations with micro-interactions
   sectionGroups.forEach((group, i) => {
     const dist = Math.abs(activeSection - i);
     group.visible = dist < 1.8;
+    
+    // Add subtle breathing effect to all groups
+    const breathe = 1 + Math.sin(t * 0.5 + i) * 0.02;
+    group.scale.setScalar(breathe);
+    
+    // Add parallax offset based on mouse
+    group.position.x += (mouse.x * (i % 2 === 0 ? 0.3 : -0.3) - group.position.x) * 0.02;
+    
     if (group.userData.animate) group.userData.animate(t, activeSection, i);
   });
 
@@ -948,7 +1060,9 @@ function animate() {
     if (fx.userData.animate) fx.userData.animate(t);
   });
 
+  // Enhanced rim light with dynamic positioning
   rimLight.position.y = cameraY + 6;
+  rimLight.intensity = 0.55 + Math.sin(t * 0.8) * 0.1;
 
   renderer.render(scene, camera);
 }
@@ -964,3 +1078,445 @@ window.addEventListener("resize", () => {
 });
 
 document.querySelector("#hero")?.classList.add("in-view");
+
+// ─── Smooth Scroll for Navigation Links ─────────────────────────────────────
+document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+  anchor.addEventListener('click', function (e) {
+    e.preventDefault();
+    const target = document.querySelector(this.getAttribute('href'));
+    if (target) {
+      target.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+      });
+    }
+  });
+});
+
+// ─── Add stagger animation for list items ───────────────────────────────────
+const observerOptions = {
+  threshold: 0.2,
+  rootMargin: '0px 0px -100px 0px'
+};
+
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      const items = entry.target.querySelectorAll('li, .cert-item, .skill-pills span');
+      items.forEach((item, index) => {
+        setTimeout(() => {
+          item.style.opacity = '1';
+          item.style.transform = 'translateY(0)';
+        }, index * 50);
+      });
+    }
+  });
+}, observerOptions);
+
+// Observe sections for stagger animations
+document.querySelectorAll('.section').forEach(section => {
+  const items = section.querySelectorAll('li, .cert-item:not(.section.in-view .cert-item), .skill-pills span');
+  items.forEach(item => {
+    item.style.opacity = '0';
+    item.style.transform = 'translateY(20px)';
+    item.style.transition = 'all 0.5s cubic-bezier(0.23, 1, 0.32, 1)';
+  });
+  observer.observe(section);
+});
+
+// ─── Add ripple effect on click ──────────────────────────────────────────────
+document.querySelectorAll('.btn, .contact-item, .nav-logo').forEach(element => {
+  element.addEventListener('click', function(e) {
+    const ripple = document.createElement('span');
+    const rect = this.getBoundingClientRect();
+    const size = Math.max(rect.width, rect.height);
+    const x = e.clientX - rect.left - size / 2;
+    const y = e.clientY - rect.top - size / 2;
+    
+    ripple.style.cssText = `
+      position: absolute;
+      width: ${size}px;
+      height: ${size}px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.3);
+      left: ${x}px;
+      top: ${y}px;
+      pointer-events: none;
+      transform: scale(0);
+      animation: ripple-effect 0.6s ease-out;
+    `;
+    
+    this.style.position = 'relative';
+    this.style.overflow = 'hidden';
+    this.appendChild(ripple);
+    
+    setTimeout(() => ripple.remove(), 600);
+  });
+});
+
+// Add ripple animation keyframes
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes ripple-effect {
+    to {
+      transform: scale(2);
+      opacity: 0;
+    }
+  }
+`;
+document.head.appendChild(style);
+
+// ─── Performance optimization: Reduce animations on low-end devices ──────────
+if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  document.querySelectorAll('*').forEach(el => {
+    el.style.animation = 'none';
+    el.style.transition = 'none';
+  });
+}
+
+console.log('🚀 Enhanced 3D Portfolio Loaded - All effects active!');
+
+// ─── Magnetic Button Effect ──────────────────────────────────────────────────
+const magneticElements = document.querySelectorAll('.btn, .nav-logo, .contact-item');
+
+magneticElements.forEach(el => {
+  el.addEventListener('mousemove', function(e) {
+    const rect = this.getBoundingClientRect();
+    const x = e.clientX - rect.left - rect.width / 2;
+    const y = e.clientY - rect.top - rect.height / 2;
+    
+    const distance = Math.sqrt(x * x + y * y);
+    const maxDistance = Math.max(rect.width, rect.height);
+    
+    if (distance < maxDistance) {
+      const strength = 0.3;
+      this.style.transform = `translate(${x * strength}px, ${y * strength}px) scale(1.05)`;
+    }
+  });
+  
+  el.addEventListener('mouseleave', function() {
+    this.style.transform = '';
+  });
+});
+
+// ─── Tilt Effect on Cards with 3D Depth ─────────────────────────────────────
+const tiltElements = document.querySelectorAll('.glass-card, .project-card, .edu-card');
+
+tiltElements.forEach(el => {
+  const children = el.querySelectorAll('h3, p, .tech-tags, .card-meta');
+  
+  el.addEventListener('mousemove', function(e) {
+    const rect = this.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    
+    const rotateX = (y - centerY) / 20;
+    const rotateY = (centerX - x) / 20;
+    
+    this.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateZ(20px)`;
+    
+    // Add depth to child elements
+    children.forEach((child, index) => {
+      const depth = (index + 1) * 5;
+      child.style.transform = `translateZ(${depth}px)`;
+    });
+  });
+  
+  el.addEventListener('mouseleave', function() {
+    this.style.transform = '';
+    children.forEach(child => {
+      child.style.transform = '';
+    });
+  });
+});
+
+// ─── Parallax Scroll Effect for Background Elements ─────────────────────────
+window.addEventListener('scroll', () => {
+  const scrolled = window.pageYOffset;
+  const parallaxSpeed = 0.5;
+  
+  // Parallax for grain
+  const grain = document.querySelector('.grain');
+  if (grain) {
+    grain.style.transform = `translateY(${scrolled * parallaxSpeed * 0.3}px)`;
+  }
+  
+  // Parallax for hero elements
+  const heroTitle = document.querySelector('.hero-title');
+  const heroSub = document.querySelector('.hero-sub');
+  const heroCta = document.querySelector('.hero-cta');
+  
+  if (heroTitle) heroTitle.style.transform = `translateY(${scrolled * parallaxSpeed * 0.5}px)`;
+  if (heroSub) heroSub.style.transform = `translateY(${scrolled * parallaxSpeed * 0.7}px)`;
+  if (heroCta) heroCta.style.transform = `translateY(${scrolled * parallaxSpeed * 0.9}px)`;
+}, { passive: true });
+
+// ─── Text Reveal Animation on Scroll ─────────────────────────────────────────
+const textElements = document.querySelectorAll('p, h1, h2, h3, h4');
+
+const revealObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.style.opacity = '1';
+      entry.target.style.transform = 'translateY(0)';
+    }
+  });
+}, {
+  threshold: 0.1,
+  rootMargin: '0px 0px -50px 0px'
+});
+
+textElements.forEach(el => {
+  if (!el.closest('.hero-inner')) {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(30px)';
+    el.style.transition = 'opacity 0.8s cubic-bezier(0.23, 1, 0.32, 1), transform 0.8s cubic-bezier(0.23, 1, 0.32, 1)';
+    revealObserver.observe(el);
+  }
+});
+
+// ─── Add Glow Effect on Scroll Progress ─────────────────────────────────────
+const progressFillElement = document.querySelector('.nav-progress-fill');
+if (progressFillElement) {
+  window.addEventListener('scroll', () => {
+    const scrollPercent = (window.scrollY / (document.documentElement.scrollHeight - window.innerHeight)) * 100;
+    const glowIntensity = Math.min(scrollPercent / 10, 3);
+    progressFillElement.style.boxShadow = `0 0 ${glowIntensity * 5}px var(--fg), 0 0 ${glowIntensity * 10}px var(--fg)`;
+  }, { passive: true });
+}
+
+// ─── Easter Egg: Konami Code ─────────────────────────────────────────────────
+let konamiCode = [];
+const konamiSequence = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
+
+document.addEventListener('keydown', (e) => {
+  konamiCode.push(e.key);
+  konamiCode = konamiCode.slice(-konamiSequence.length);
+  
+  if (konamiCode.join(',') === konamiSequence.join(',')) {
+    // Activate rainbow mode
+    document.body.style.animation = 'rainbow 5s linear infinite';
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes rainbow {
+        0% { filter: hue-rotate(0deg); }
+        100% { filter: hue-rotate(360deg); }
+      }
+    `;
+    document.head.appendChild(style);
+    
+    setTimeout(() => {
+      document.body.style.animation = '';
+    }, 5000);
+  }
+});
+
+console.log('✨ All enhanced effects loaded successfully!');
+console.log('📊 Active effects: Loader, Custom Cursor, Glowing Buttons, Parallax, 3D Motion, Micro-interactions, Entrance Reveals');
+
+// ─── 3D Corner and Edge Motion Effects ───────────────────────────────────────
+const cornerDecorations = document.querySelector('.corner-decorations');
+const corners = document.querySelectorAll('.corner');
+const edges = document.querySelectorAll('.edge');
+
+// Mouse parallax for corners
+window.addEventListener('mousemove', (e) => {
+  const mouseX = (e.clientX / window.innerWidth - 0.5) * 2;
+  const mouseY = (e.clientY / window.innerHeight - 0.5) * 2;
+  
+  corners.forEach((corner, index) => {
+    const speed = 0.5 + (index * 0.1);
+    const direction = index % 2 === 0 ? 1 : -1;
+    
+    const offsetX = mouseX * 10 * speed * direction;
+    const offsetY = mouseY * 10 * speed * direction;
+    const rotateZ = mouseX * 5 * direction;
+    
+    corner.style.transform = `translate(${offsetX}px, ${offsetY}px) rotateZ(${rotateZ}deg)`;
+  });
+  
+  // Edge wave effect based on mouse position
+  edges.forEach((edge, index) => {
+    const intensity = 0.3 + (Math.abs(mouseX) + Math.abs(mouseY)) * 0.2;
+    edge.style.opacity = intensity;
+  });
+});
+
+// Scroll-based intensity
+let lastScrollY = window.scrollY;
+window.addEventListener('scroll', () => {
+  const scrollY = window.scrollY;
+  const scrollSpeed = Math.abs(scrollY - lastScrollY);
+  lastScrollY = scrollY;
+  
+  // Add scrolled class for enhanced effects
+  if (scrollY > 100) {
+    cornerDecorations.classList.add('scrolled');
+  } else {
+    cornerDecorations.classList.remove('scrolled');
+  }
+  
+  // Pulse corners on fast scroll
+  if (scrollSpeed > 50) {
+    corners.forEach(corner => {
+      corner.style.filter = 'drop-shadow(0 0 30px rgba(255, 255, 255, 1))';
+      setTimeout(() => {
+        corner.style.filter = '';
+      }, 300);
+    });
+  }
+}, { passive: true });
+
+// Corner breathing effect with requestAnimationFrame
+let cornerTime = 0;
+function animateCorners() {
+  cornerTime += 0.01;
+  
+  corners.forEach((corner, index) => {
+    const phase = (index * Math.PI / 2) + cornerTime;
+    const scale = 1 + Math.sin(phase) * 0.05;
+    const currentTransform = corner.style.transform || '';
+    
+    // Preserve mouse offset and add breathing
+    if (!currentTransform.includes('scale')) {
+      corner.style.transform = `${currentTransform} scale(${scale})`;
+    }
+  });
+  
+  requestAnimationFrame(animateCorners);
+}
+animateCorners();
+
+// Create floating particles at corners
+function createCornerParticles() {
+  corners.forEach(corner => {
+    for (let i = 0; i < 3; i++) {
+      const particle = document.createElement('div');
+      particle.style.cssText = `
+        position: absolute;
+        width: 4px;
+        height: 4px;
+        background: var(--fg);
+        border-radius: 50%;
+        pointer-events: none;
+        box-shadow: 0 0 10px var(--fg);
+        animation: corner-particle-float ${3 + i}s ease-in-out infinite;
+        animation-delay: ${i * 0.5}s;
+        opacity: 0.6;
+      `;
+      
+      // Position based on corner
+      if (corner.classList.contains('corner-tl')) {
+        particle.style.top = `${20 + i * 15}px`;
+        particle.style.left = `${20 + i * 15}px`;
+      } else if (corner.classList.contains('corner-tr')) {
+        particle.style.top = `${20 + i * 15}px`;
+        particle.style.right = `${20 + i * 15}px`;
+      } else if (corner.classList.contains('corner-bl')) {
+        particle.style.bottom = `${20 + i * 15}px`;
+        particle.style.left = `${20 + i * 15}px`;
+      } else if (corner.classList.contains('corner-br')) {
+        particle.style.bottom = `${20 + i * 15}px`;
+        particle.style.right = `${20 + i * 15}px`;
+      }
+      
+      corner.appendChild(particle);
+    }
+  });
+}
+
+// Add particle animation
+const particleStyle = document.createElement('style');
+particleStyle.textContent = `
+  @keyframes corner-particle-float {
+    0%, 100% {
+      transform: translate(0, 0) scale(1);
+      opacity: 0.6;
+    }
+    25% {
+      transform: translate(5px, -5px) scale(1.2);
+      opacity: 0.8;
+    }
+    50% {
+      transform: translate(0, -10px) scale(0.8);
+      opacity: 0.4;
+    }
+    75% {
+      transform: translate(-5px, -5px) scale(1.1);
+      opacity: 0.7;
+    }
+  }
+`;
+document.head.appendChild(particleStyle);
+
+createCornerParticles();
+
+// Edge scanning effect
+let edgeScanPosition = 0;
+function animateEdgeScan() {
+  edgeScanPosition += 0.5;
+  
+  edges.forEach((edge, index) => {
+    const isHorizontal = edge.classList.contains('edge-top') || edge.classList.contains('edge-bottom');
+    const gradientPosition = (edgeScanPosition + (index * 25)) % 100;
+    
+    if (isHorizontal) {
+      edge.style.backgroundPosition = `${gradientPosition}% 0%`;
+    } else {
+      edge.style.backgroundPosition = `0% ${gradientPosition}%`;
+    }
+  });
+  
+  requestAnimationFrame(animateEdgeScan);
+}
+animateEdgeScan();
+
+// Corner click interaction
+corners.forEach(corner => {
+  corner.style.cursor = 'pointer';
+  corner.style.pointerEvents = 'auto';
+  
+  corner.addEventListener('click', () => {
+    // Create ripple burst effect
+    for (let i = 0; i < 8; i++) {
+      const burst = document.createElement('div');
+      const angle = (i / 8) * Math.PI * 2;
+      const distance = 50;
+      
+      burst.style.cssText = `
+        position: absolute;
+        width: 4px;
+        height: 4px;
+        background: var(--fg);
+        border-radius: 50%;
+        box-shadow: 0 0 10px var(--fg);
+        left: 50%;
+        top: 50%;
+        pointer-events: none;
+      `;
+      
+      corner.appendChild(burst);
+      
+      setTimeout(() => {
+        burst.style.transition = 'all 0.6s ease-out';
+        burst.style.transform = `translate(${Math.cos(angle) * distance}px, ${Math.sin(angle) * distance}px)`;
+        burst.style.opacity = '0';
+      }, 10);
+      
+      setTimeout(() => burst.remove(), 700);
+    }
+    
+    // Pulse effect
+    corner.style.transform = 'scale(1.3)';
+    corner.style.filter = 'drop-shadow(0 0 40px rgba(255, 255, 255, 1))';
+    setTimeout(() => {
+      corner.style.transform = '';
+      corner.style.filter = '';
+    }, 300);
+  });
+});
+
+console.log('🔲 3D Corner and Edge effects activated!');
